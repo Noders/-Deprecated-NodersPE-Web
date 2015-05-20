@@ -1,4 +1,5 @@
 var express = require('express'),
+    mongoose = require('mongoose'),
     app 	= express(),
     server 	= require('http').createServer(app);
 var _ 			    = require('underscore'),
@@ -8,22 +9,30 @@ var _ 			    = require('underscore'),
     bodyParser      = require('body-parser'),
     session         = require('express-session'),
     favicon 	    = require('serve-favicon'),
+    enrouten        = require('express-enrouten'),
     debug           = require('debug')('noders:server');
 var keys    	    = require('./secrets/keys.js');
 
 var index           = require('./app/routes/index');
 
+var PATHS = {
+    faviconPath: path.join(__dirname, 'public/imagenes/favicon.ico'),
+    publicResourcesPath: path.join(__dirname, 'public'),
+    viewsPath: path.join(__dirname, 'app/views'),
+    routesPath: '/app/routes'
+};
+
 // View engine
 app.set('view engine', 'jade');
-app.set('views', './app/views');
+app.set('views', PATHS.viewsPath);
 
 // Add post, cookie and session support
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public'),{ maxAge: keys.tiempo }));
-app.use(favicon(path.join(__dirname,'public/imagenes/favicon.ico')));
+app.use(express.static(PATHS.publicResourcesPath, { maxAge: keys.tiempo }));
+app.use(favicon(PATHS.faviconPath));
 app.use(session({
     secret: "EpicNoders",
     resave: false,
@@ -33,8 +42,13 @@ app.use(session({
 //Production Mode
 app.set('env', 'production');
 
-//Routes pages
-app.use(index);
+/**
+ * Setup routes
+ */
+app.use(enrouten({
+  directory: PATHS.routesPath,
+  index: path.join(PATHS.routesPath, '/')
+}));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -60,7 +74,6 @@ if (app.get('env') === 'development') {
 // production error handler
 // no stacktraces leaked to user
 app.use(function(err, req, res, next) {
-    debugger;
     res.status(err.status || 500);
     res.render('error', {
         message: err.message,
@@ -73,13 +86,22 @@ app.set('port', port);
 
 /**
  * Create HTTP server.
- */ 	
- 
-/**
- * Listen on provided port, on all network interfaces.
  */
 
-server.listen(port);
+/**
+ * Initialize connection to database and server on provided port,
+ * on all network interfaces.
+ */
+mongoose.connect(keys.mongoConnection, function (err) {
+    if (err) {
+        return console.log ('ERROR while connecting to database: ' + err);
+    }
+
+    console.log ('Succeeded connected to database');
+
+    server.listen(port);
+});
+
 server.on('error', onError);
 server.on('listening', onListening);
 

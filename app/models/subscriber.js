@@ -1,9 +1,9 @@
-var models = require('./models'),
-    Schema = models.Schema;
+var mongoose = require('mongoose'),
+    Schema = mongoose.Schema;
 
 var subscriber = Schema({
     nombre  : String,
     email   : String
 });
 
-module.exports = models.model('subscriber', subscriber);
+module.exports = mongoose.model('subscriber', subscriber);
